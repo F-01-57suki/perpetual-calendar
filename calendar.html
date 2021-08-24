@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <style type="text/css">
+      #wrapper{margin: 0 auto;width: 500px;}
+      th,td{border: rgb(0, 0, 0) solid 1px;padding: 5px;}
+      #form{display: flex;}
+      #form p{margin-right: 15px;}
+      input{margin-right: 2px;}
+      #wrapper>div:nth-child(4){display: flex;justify-content:space-between;align-items:center;margin: 0 auto;width: 300px;}
+      #calendar{margin: 0 auto;width: 300px;text-align: center;}
+      #calendar th{color: rgb(255, 255, 255);background-color: rgba(0, 0, 0, 0.6);}
+      #calendar td:nth-child(1){color: rgba(255, 0, 0);background-color: rgba(255, 0, 0, 0.1);}
+      #calendar th:nth-child(1){color: rgb(255, 255, 255);background-color: rgba(255, 0, 0, 0.6);}
+      #calendar td:nth-child(7){color: rgba(0, 0, 255);background-color: rgba(0, 0, 255, 0.1);}
+      #calendar th:nth-child(7){color: rgb(255, 255, 255);background-color: rgba(0, 0, 255, 0.6);}
+      #today{background-color: rgba(255, 204, 0, 0.5);}
+    </style>
+    <title>万年カレンダー</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <h1>万年カレンダー</h1>
+      <p>2000年1月以降の西暦と月を入力してください。（半角数字）<br>祝日はしりません。</p>
+      <div id="form">
+        <p><input type="number" size="10" id="year">年</p>
+        <p><input type="number" size="5" id="month">月</p>
+        <p><input type="button" value="表示" id="btn"></p>
+      </div>
+      <div>
+        <p id="backb"></p>
+        <h2 id="ch2"></h2>
+        <p id="nextb"></p>
+      </div>
+      <div>
+        <table id="calendar"></table>
+      </div>
+    <script>
+      //================================
+      //識別子
+      //================================
+      const year=document.getElementById("year");
+      const month=document.getElementById("month");
+      const btn=document.getElementById("btn");
+      const ch2=document.getElementById("ch2");
+      const backb=document.getElementById("backb");
+      const nextb=document.getElementById("nextb");
+      const calendar=document.getElementById("calendar");
+      const c_tr=calendar.getElementsByTagName("tr");
+      const c_th=calendar.getElementsByTagName("th");
+      const c_td=calendar.getElementsByTagName("td");
+      const WEEK=["日","月","火","水","木","金","土"];
+      const md=[31,28,31,30,31,30,31,31,30,31,30,31]
+
+      const kijun_y=2000,kijun_m=1;
+      let t=new Date();let nowy=t.getFullYear();let nowm=t.getMonth();let nowd=t.getDate();nowm++;
+      let day,ly,week,keika,weekCount;
+
+      //================================
+      //関数
+      //================================
+      //閏年か？
+      function leapYear(){
+        ly=0;
+        if(year.value%400==0 || (year.value%100!=0 && year.value%4==0)){
+          ly=1;
+        }
+        else{
+          ly=0;
+        }
+      }
+
+      //曜日の取得
+      function getWeek(){
+        //‐経過年を日数に換算
+        keika=(year.value-kijun_y)*365;                //入力月から基準月を引き、365日掛ける
+        //‐2000年以降、もしくは2000年の2月以降
+        if(year.value>2000){
+          for(let i=(year.value-1);i!=(kijun_y-1);i--){//その間、閏年が何回あったか数えて足す
+            if(i%400==0 || (i%100!=0 && i%4==0)){      //今見てる(iの)年が、閏年か判定
+              keika++;
+            }
+          }
+        }
+        //‐経過月を日数に換算
+        ly=0;
+        for(let i=0;i<(month.value-1);i++){//iが入力月より小さい間(含まない)ループ
+          if(i==1){                        //2月
+            leapYear();
+            if(ly==1){
+              keika+=md[i]+ly;             //閏年は28+1=29日足す
+            }
+            else{
+              keika+=md[i];                //閏年じゃなければそのまま28
+            }
+          }
+          else{                            //2月じゃない月は、
+            keika+=md[i];                  //配列みて、iの月の日数を足す
+          }
+        }
+        //‐経過日数から曜日を取得
+        weekCount=keika%7;                 //経過日数を7で割り、余り＝配列ずらす数を出す
+        if(weekCount==0){
+          weekCount=6;week=WEEK[weekCount];//曜日を取得
+        }
+        else{
+          weekCount-=1;week=WEEK[weekCount];//曜日を取得
+        }
+      }
+      //カレンダー生成
+      function create(){
+        //‐範囲外アラート
+        if(year.value<2000 || month.value<1 || month.value>12){
+          alert("2000年1月以降の西暦と月を入力してください。（半角数字）");
+          return;
+        }
+        //‐見出しの出力
+        backb.innerHTML="<input type='button' value='前月' id='back'>";
+        ch2.innerHTML=year.value+"年&nbsp;"+month.value+"月";
+        nextb.innerHTML="<input type='button' value='次月' id='next'>";
+        //‐テーブル生成
+        let tbl="<tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr>";
+        getWeek();               //曜日を取得
+        switch(week){
+          case "日":day=1;break; //空白0
+          case "月":day=0;break; //空白1
+          case "火":day=-1;break;//空白2
+          case "水":day=-2;break;//空白3
+          case "木":day=-3;break;//空白4
+          case "金":day=-4;break;//空白5
+          case "土":day=-5;break;//空白6
+          default:alert("エラー");break;
+        }
+        leapYear();                                    //閏年か判定
+        for(let i=0;i<6;i++){                          //6週（行）分まわす
+          if(month.value!=2 || ly==0){
+            if(day>md[month.value-1]){break;}
+          }
+          else{
+            if(day>(md[month.value-1]+1)){break;}
+          }
+          tbl+="<tr>";                                 //行の作成
+          for(let j=0;j<7;j++){                        //7日（列）分まわす
+            if(year.value==nowy && month.value==nowm && day==nowd){
+              tbl+="<td id='today'>";                  //今日なら色セル
+            }
+            else{
+              tbl+="<td>";                             //セルの作成
+            }
+            //‐閏年以外
+            if(month.value!=2 || ly==0){
+              if(day>=1 && day<=md[month.value-1]){    //もし日が1以上かつ月の最大日数以下なら、
+                tbl+=day;                              //セルに日数を表示
+              }
+              else{
+                tbl+="　";                             //そうでなければ空白（月外
+              }
+            }
+            //‐閏年
+            else{
+              if(day>=1 && day<=(md[month.value-1]+1)){//28＋1＝29まで表示
+                tbl+=day;
+              }
+              else{
+                tbl+="　";                             //月外は空白
+              }
+            }
+            tbl+="</td>";                              //セルとじ
+            day++;                                     //次の日へ
+          }
+          tbl+="</tr>";
+        }
+        calendar.innerHTML=tbl;
+        calendar.style.border="black solid 1px";
+        calendar.style.border="black solid 1px";
+      }
+      //前月へボタン
+      function bmonth(){
+        if(month.value==1){
+          year.value--;month.value=12;
+        }
+        else{
+          month.value--;
+        }
+        create();
+      }
+      //翌月へボタン
+      function nmonth(){
+        if(month.value==12){
+          year.value++;month.value=1;
+        }
+        else{
+          month.value++;
+        }
+        create();
+      }
+      //表示ボタン
+      btn.onclick=create;
+      backb.onclick=bmonth;
+      nextb.onclick=nmonth;
+    </script>
+  </body>
+</html>
